@@ -51,13 +51,20 @@ Cada request incluye asserts automáticos en la pestaña **Tests** de Postman (s
 6. También puedes correr toda la colección de una vez con **Runner** (botón "Run collection").
 
 ## 📌 Resultados / Hallazgos
+Las pruebas fueron ejecutadas utilizando Postman sobre la API pública Restful-Booker. Se validaron los principales flujos de autenticación y operaciones CRUD sobre el recurso booking, además de diferentes escenarios negativos.
 
-> Esta sección la completas tú después de correr la colección — es la parte que más valor le da al proyecto frente a un reclutador.
+Resultados generales
+- ✅ Health check: el endpoint /ping permite comprobar la disponibilidad de la API.
+- ✅ Autenticación: se validó la generación de un token utilizando credenciales válidas.
+- ✅ CRUD de reservas: se validaron las operaciones de creación, consulta, actualización y eliminación de una reserva.
+- ✅ Validación de respuestas: se utilizaron assertions de Postman para comprobar códigos de estado HTTP y datos relevantes del body.
+- ✅ Manejo de IDs inexistentes: se verificó el comportamiento de la API al consultar una reserva que no existe.
+- ✅ Autenticación en operaciones protegidas: se validó el uso del token para las operaciones que requieren autorización.
+- ⚠️ Casos negativos: se realizaron pruebas con credenciales inválidas, datos incorrectos y solicitudes sin autenticación para identificar cómo responde la API ante entradas no válidas.
 
-Ejemplo de cómo documentarlo:
-- ✅ Los endpoints de autenticación y CRUD responden según lo documentado.
-- ⚠️ El endpoint `/booking` con datos inválidos (`totalprice` como texto) devuelve `500 Internal Server Error` en lugar de un `400 Bad Request` — comportamiento a reportar como bug de la API.
-- ✅ Las peticiones `PUT`/`PATCH`/`DELETE` sin token son correctamente rechazadas con `403`.
+## Observaciones
+
+Durante la ejecución se deben registrar los comportamientos que difieran de lo esperado según la documentación de la API. Cualquier respuesta inesperada será documentada como un posible defecto, indicando el endpoint, datos enviados, respuesta obtenida, código HTTP y comportamiento esperado.
 
 ## 🙋 Autor
 
