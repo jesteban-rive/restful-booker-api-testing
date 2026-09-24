@@ -1,0 +1,355 @@
+{
+  "info": {
+    "_postman_id": "b3f1a2c4-restful-booker-qa-project",
+    "name": "Restful-Booker API Tests",
+    "description": "Colección de pruebas de API para Restful-Booker (https://restful-booker.herokuapp.com). Incluye autenticación, CRUD completo de reservas (bookings), casos negativos y health check. Cada request trae asserts automáticos (pestaña Tests) que validan status code y estructura de la respuesta.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://restful-booker.herokuapp.com", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "bookingId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01 - Health Check",
+      "item": [
+        {
+          "name": "GET Ping (HealthCheck)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Response body contains Created', function () {",
+                  "    pm.expect(pm.response.text()).to.include('Created');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/ping", "host": ["{{baseUrl}}"], "path": ["ping"] },
+            "description": "Verifica que la API esté disponible antes de correr el resto de pruebas."
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Autenticación",
+      "item": [
+        {
+          "name": "POST Create Token (credenciales válidas)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response contiene token', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('token');",
+                  "    pm.collectionVariables.set('token', jsonData.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth", "host": ["{{baseUrl}}"], "path": ["auth"] },
+            "description": "Caso positivo: genera un token válido y lo guarda en la variable de colección {{token}} para usarlo en PUT/PATCH/DELETE."
+          }
+        },
+        {
+          "name": "POST Create Token (credenciales inválidas) - Negativo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 (la API responde 200 aunque falle el login)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Respuesta NO contiene token, contiene reason', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.not.have.property('token');",
+                  "    pm.expect(jsonData).to.have.property('reason');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"wrongpassword\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth", "host": ["{{baseUrl}}"], "path": ["auth"] },
+            "description": "Caso negativo: credenciales incorrectas. Documenta el comportamiento real de la API (no siempre responde como uno esperaría, y eso es parte de lo que hay que reportar como QA)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Booking CRUD",
+      "item": [
+        {
+          "name": "POST Create Booking",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response contiene bookingid y datos correctos', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('bookingid');",
+                  "    pm.expect(jsonData.booking.firstname).to.eql('Carlos');",
+                  "    pm.collectionVariables.set('bookingId', jsonData.bookingid);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstname\": \"Carlos\",\n  \"lastname\": \"Perez\",\n  \"totalprice\": 150,\n  \"depositpaid\": true,\n  \"bookingdates\": {\n    \"checkin\": \"2026-10-01\",\n    \"checkout\": \"2026-10-05\"\n  },\n  \"additionalneeds\": \"Breakfast\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/booking", "host": ["{{baseUrl}}"], "path": ["booking"] },
+            "description": "Crea una reserva nueva y guarda el bookingid generado en {{bookingId}} para usarlo en los siguientes requests."
+          }
+        },
+        {
+          "name": "GET Booking by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Devuelve los datos correctos de la reserva', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.firstname).to.eql('Carlos');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/booking/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["booking", "{{bookingId}}"] }
+          }
+        },
+        {
+          "name": "GET All Booking IDs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Devuelve un arreglo de reservas', function () {",
+                  "    pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/booking", "host": ["{{baseUrl}}"], "path": ["booking"] }
+          }
+        },
+        {
+          "name": "PUT Update Booking (con token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('El precio se actualizó correctamente', function () {",
+                  "    pm.expect(pm.response.json().totalprice).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Cookie", "value": "token={{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstname\": \"Carlos\",\n  \"lastname\": \"Perez\",\n  \"totalprice\": 200,\n  \"depositpaid\": true,\n  \"bookingdates\": {\n    \"checkin\": \"2026-10-01\",\n    \"checkout\": \"2026-10-06\"\n  },\n  \"additionalneeds\": \"Breakfast\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/booking/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["booking", "{{bookingId}}"] }
+          }
+        },
+        {
+          "name": "PATCH Partial Update Booking",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('El nombre se actualizó parcialmente', function () {",
+                  "    pm.expect(pm.response.json().firstname).to.eql('Carlitos');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Cookie", "value": "token={{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstname\": \"Carlitos\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/booking/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["booking", "{{bookingId}}"] }
+          }
+        },
+        {
+          "name": "DELETE Booking (con token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Cookie", "value": "token={{token}}" }],
+            "url": { "raw": "{{baseUrl}}/booking/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["booking", "{{bookingId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Casos Negativos",
+      "item": [
+        {
+          "name": "POST Create Booking (datos inválidos)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('La API responde con error (500) por datos inválidos', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 500]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstname\": \"\",\n  \"totalprice\": \"no-deberia-ser-texto\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/booking", "host": ["{{baseUrl}}"], "path": ["booking"] },
+            "description": "Caso negativo: firstname vacío, totalprice con tipo de dato incorrecto. Sirve para documentar cómo maneja (o no maneja) la API los datos mal formados."
+          }
+        },
+        {
+          "name": "GET Booking inexistente (ID inválido)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/booking/9999999", "host": ["{{baseUrl}}"], "path": ["booking", "9999999"] }
+          }
+        },
+        {
+          "name": "DELETE Booking sin token - Negativo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403 (Forbidden sin autenticación)', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/booking/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["booking", "{{bookingId}}"] },
+            "description": "Intenta borrar una reserva sin enviar el token de autenticación. Debe rechazarse con 403."
+          }
+        }
+      ]
+    }
+  ]
+}
